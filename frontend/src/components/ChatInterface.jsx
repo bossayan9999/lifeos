@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import './ChatInterface.css'
 
+// Prefer build-time env (Docker/Vercel), fall back to same-origin proxy
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 export default function ChatInterface({ activePlugin }) {
   const [messages, setMessages] = useState([
     {
@@ -28,7 +31,7 @@ export default function ChatInterface({ activePlugin }) {
     setLoading(true)
 
     try {
-      const { data } = await axios.post('/api/v1/query', {
+      const { data } = await axios.post(`${API_BASE}/api/v1/query`, {
         query: q,
         top_k: 5,
         use_web: false,
