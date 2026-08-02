@@ -1,20 +1,30 @@
 # LifeOS – AI Knowledge Base with MCP Plugin Hub
 
-Full-stack implementation of the architecture diagram.
+Local-first AI knowledge base with Obsidian-style vault, FAISS semantic search, MCP plugin hub, and React chat UI.
 
-## Architecture Alignment
+## One-command local run (Docker)
 
-| Layer | Implementation |
-|-------|----------------|
-| Content Sources | Documents / FAQs / Chat Logs → chunked into Obsidian-style Markdown |
-| Obsidian Vault & Local Storage | `backend/data/vault/` + FAISS / SQLite vector store |
-| Query Processing & LLM Orchestrator | FastAPI + local semantic search → A2A fallback → LLM |
-| MCP Plugin Hub | Extensible plugin system (CRM, ERP, Code Repo, Analytics, Obsidian, custom APIs) |
-| Data Cleaner Module | Weekly job: deduplicate + archive stale notes |
-| User Interaction | React chat UI with sources + feedback loop |
-| Feedback Loop | Query logging + gap reporting |
+```bash
+git clone https://github.com/bossayan9999/lifeos.git
+cd lifeos
 
-## Quick Start
+# optional: set LLM keys
+export OPENAI_API_KEY=sk-...
+# or ANTHROPIC_API_KEY=...
+
+docker compose up --build
+```
+
+Then open:
+- **Chat UI** → http://localhost:5173  
+- **API / Swagger** → http://localhost:8000/docs  
+- **Health** → http://localhost:8000/health  
+
+Vault data persists in the `lifeos-data` Docker volume.
+
+---
+
+## Manual local run (no Docker)
 
 ### Backend
 ```bash
@@ -34,36 +44,90 @@ npm run dev
 
 Open http://localhost:5173
 
-### Data Cleaner (manual)
+---
+
+## One-click / permanent public deploy
+
+### Option A – Railway (backend) + Vercel (frontend)
+
+1. **Backend on Railway**  
+   - Go to https://railway.app/new  
+   - Deploy from GitHub → select `bossayan9999/lifeos`  
+   - Root directory / Dockerfile: `backend/Dockerfile`  
+   - Add env vars: `OPENAI_API_KEY` (optional)  
+   - Note the public URL (e.g. `https://lifeos-backend.up.railway.app`)
+
+2. **Frontend on Vercel**  
+   - Go to https://vercel.com/new  
+   - Import the same repo  
+   - Root directory: `frontend`  
+   - Build command: `npm run build`  
+   - Output: `dist`  
+   - Env var: `VITE_API_URL` = your Railway backend URL  
+   - Deploy → you get a permanent public URL
+
+### Option B – Render (both services)
+
+1. Go to https://dashboard.render.com/blueprints  
+2. New Blueprint → connect repo → select `render.yaml`  
+3. After backend is live, set `VITE_API_URL` on the frontend service to the backend URL  
+4. Redeploy frontend
+
+### Option C – Fly.io
+
 ```bash
-python scripts/cleaner.py
+# Backend
+cd backend
+fly launch --config fly.toml
+fly secrets set OPENAI_API_KEY=sk-...
+fly deploy
+
+# Frontend
+cd ../frontend
+# Edit fly.toml VITE_API_URL to your backend URL
+fly launch --config fly.toml
+fly deploy
 ```
 
-## Environment
-Copy `.env.example` → `.env` and set:
-- `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / etc. (LLM of choice)
-- `GOOGLE_API_KEY` (optional A2A web search)
+---
 
-## Project Structure
-```
-lifeos/
-├── backend/          # FastAPI orchestrator + MCP plugins
-├── frontend/         # React chat interface
-├── scripts/          # Data Cleaner & maintenance
-├── docs/             # Architecture notes
-└── README.md
-```
+## Architecture
 
-## MCP Plugins (implemented)
+| Layer | Implementation |
+|-------|----------------|
+| Content Sources | Documents / FAQs / Chat Logs → Markdown |
+| Obsidian Vault & Local Storage | `backend/data/vault/` + FAISS / SQLite |
+| Query Processing & LLM Orchestrator | Local semantic search → A2A → LLM |
+| MCP Plugin Hub | obsidian, crm, code_repo, analytics, … |
+| Data Cleaner | Deduplicate + archive |
+| User Interaction | React chat + sources + feedback |
+
+## MCP Plugins
 
 | Plugin | Category | Status |
 |--------|----------|--------|
-| **obsidian** | specialized | Live – semantic search, list/read/create notes, tags |
+| **obsidian** | specialized | Live – search / list / read / create / tags |
 | **crm** | enterprise | Demo data |
 | **code_repo** | specialized | Local + GitHub-ready |
-| **analytics** | specialized | Live usage & gap stats |
-| **project_mgmt** | enterprise | Stub |
-| **erp** | enterprise | Disabled |
-| **custom_api** | specialized | Stub |
+| **analytics** | specialized | Live usage stats |
+| project_mgmt / erp / custom_api | – | Stubs |
 
-Privacy: All internal data stays local. External calls are read-only and only triggered when local retrieval confidence is low.
+## Environment
+
+Copy `backend/.env.example` → `backend/.env`:
+
+```
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GOOGLE_API_KEY=
+SERPER_API_KEY=
+```
+
+## Privacy
+
+Internal data stays local (or in your own Docker volume / cloud account). External calls are read-only and only used when local confidence is low.
+
+## Links
+
+- Code: https://github.com/bossayan9999/lifeos  
+- Obsidian vault notes: https://github.com/bossayan9999/obsidian-agent-vault  
